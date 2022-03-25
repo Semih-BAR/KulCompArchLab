@@ -1,9 +1,14 @@
 #include <stdint.h>
 #include <stm32l4xx.h>
+#include <math.h>
 
 int mux = 0;
 int tick = 0;
-int temperatuur = 0;
+int temperatuur;
+float value;
+float V;
+float R;
+float uitkomst;
 
 void delay(unsigned int n){
 	volatile unsigned int delay = n;
@@ -16,6 +21,7 @@ void delay(unsigned int n){
 }
 
 void clear(){
+	GPIOA->ODR &= ~(GPIO_ODR_OD6);
 	GPIOA->ODR &= ~(GPIO_ODR_OD7 | GPIO_ODR_OD5);
 	GPIOB->ODR &= ~(GPIO_ODR_OD0 | GPIO_ODR_OD12 | GPIO_ODR_OD15 | GPIO_ODR_OD1 | GPIO_ODR_OD2);
 }
@@ -83,6 +89,7 @@ void SysTick_Handler(void){
 
 	case 2:
 		clear();
+		GPIOA->ODR |= (GPIO_ODR_OD6);
 		GPIOA->ODR &= ~(GPIO_ODR_OD8);
 		GPIOA->ODR |= (GPIO_ODR_OD15);		// 01
 		seg7((temperatuur % 100) / 10);
@@ -136,7 +143,7 @@ int main(void) {
 
 	// kanalen instellen
 	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);
-	ADC1->SQR1 |= (ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2);
+	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
 
 	//NTC
     GPIOA->MODER &= ~GPIO_MODER_MODE0_Msk;		// port mode register mask van GPIOA pin 0 laag zetten
@@ -173,6 +180,10 @@ int main(void) {
 	GPIOB->MODER |= GPIO_MODER_MODE2_0;
 	GPIOB->OTYPER &= ~GPIO_OTYPER_OT2;
 
+	GPIOA->MODER &= ~GPIO_MODER_MODE6_Msk;
+	GPIOA->MODER |= GPIO_MODER_MODE6_0;
+	GPIOA->OTYPER &= ~GPIO_OTYPER_OT6;
+
 	//mux
 	GPIOA->MODER &= ~GPIO_MODER_MODE8_Msk;
 	GPIOA->MODER |= GPIO_MODER_MODE8_0;
@@ -186,15 +197,19 @@ int main(void) {
 	GPIOA->MODER |= GPIO_MODER_MODE6_0;
 	GPIOA->OTYPER &= ~GPIO_OTYPER_OT6;
 
-
-
     while (1) {
     	// Start de ADC en wacht tot de sequentie klaar is
     	ADC1->CR |= ADC_CR_ADSTART;
     	while(!(ADC1->ISR & ADC_ISR_EOS));
 
     	// Lees de waarde in
-    	temperatuur = ADC1->DR;
-    	delay(100);
+    	float value = ADC1->DR;
+    	float V = (value * 3.0f)/4096.0f;
+    	float R = (10000.0f*V)/(3.0f-V);
+    	uitkomst = (1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f;
+    	uitkomst *= 10;
+    	temperatuur = uitkomst;
+
+    	delay(200);
     }
 }
