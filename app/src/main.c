@@ -136,7 +136,7 @@ int main(void) {
 
 	// kanalen instellen
 	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);
-	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
+	ADC1->SQR1 |= (ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2);
 
 	//NTC
     GPIOA->MODER &= ~GPIO_MODER_MODE0_Msk;		// port mode register mask van GPIOA pin 0 laag zetten
@@ -195,6 +195,6 @@ int main(void) {
 
     	// Lees de waarde in
     	temperatuur = ADC1->DR;
-    	delay(250);
+    	delay(50);
     }
 }
