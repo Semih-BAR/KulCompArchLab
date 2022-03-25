@@ -33,6 +33,7 @@ void delay2(unsigned int n){
 }
 
 void clear(){
+	GPIOA->ODR &= ~(GPIO_ODR_OD6);
 	GPIOA->ODR &= ~(GPIO_ODR_OD7 | GPIO_ODR_OD5);
 	GPIOB->ODR &= ~(GPIO_ODR_OD0 | GPIO_ODR_OD12 | GPIO_ODR_OD15 | GPIO_ODR_OD1 | GPIO_ODR_OD2);
 }
@@ -93,6 +94,7 @@ void SysTick_Handler(void){
 
 	case 1:
 		clear();
+		GPIOA->ODR |= (GPIO_ODR_OD6);
 		GPIOA->ODR |= (GPIO_ODR_OD8);
 		GPIOA->ODR &= ~(GPIO_ODR_OD15);		// 10
 		seg7(uren % 10);
