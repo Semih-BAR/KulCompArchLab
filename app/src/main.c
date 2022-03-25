@@ -195,6 +195,6 @@ int main(void) {
 
     	// Lees de waarde in
     	temperatuur = ADC1->DR;
-    	delay(50);
+    	delay(100);
     }
 }
