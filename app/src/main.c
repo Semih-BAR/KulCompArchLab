@@ -259,8 +259,6 @@ int main(void) {
 			}
 		}
 
-
-
     	if (minuten >= 60){
 			clear();
 			minuten = 0;
