@@ -142,14 +142,15 @@ int main(void) {
 	ADC1->CR |= ADC_CR_ADEN;
 
 	// kanalen instellen
-	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);
+	ADC1->SMPR1 |= (ADC_SMPR1_SMP5_0 | ADC_SMPR1_SMP5_1 | ADC_SMPR1_SMP5_2);
+	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
 	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
+
 
 	//NTC
     GPIOA->MODER &= ~GPIO_MODER_MODE0_Msk;		// port mode register mask van GPIOA pin 0 laag zetten
 
-    GPIOA->MODER |= GPIO_MODER_MODE0_0;		// port mode register van GPIOA pin 0 op 11 zetten -> analog mode
-    GPIOA->MODER |= GPIO_MODER_MODE0_1;
+    GPIOA->MODER |= GPIO_MODER_MODE0_0 | GPIO_MODER_MODE0_1;		// port mode register van GPIOA pin 0 op 11 zetten -> analog mode
 
     //7seg leds
 	GPIOA->MODER &= ~GPIO_MODER_MODE7_Msk;
@@ -204,7 +205,7 @@ int main(void) {
 
     	// Lees de waarde in
     	float value = ADC1->DR;
-    	float V = (value * 3.0f)/4096.0f;
+    	float V = (value*3.0f)/4096.0f;
     	float R = (10000.0f*V)/(3.0f-V);
     	uitkomst = (1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f;
     	uitkomst *= 10;
