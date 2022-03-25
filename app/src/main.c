@@ -3,11 +3,28 @@
 
 int mux = 0;
 int tick = 0;
-int temperatuur = 0;
+int uren = 0;
+int minuten = 0;
+int toggle = 0;
+int stop = 1;
 
 void delay(unsigned int n){
 	volatile unsigned int delay = n;
-	while (delay != 0){
+	while (delay | toggle){
+    	if (!(GPIOB->IDR & GPIO_IDR_ID14)) {
+			toggle++;
+			break;
+		}
+		if (tick){
+			delay--;
+			tick = 0;
+		}
+	}
+}
+
+void delay2(unsigned int n){
+	volatile unsigned int delay = n;
+	while (delay){
 		if (tick){
 			delay--;
 			tick = 0;
@@ -71,78 +88,37 @@ void SysTick_Handler(void){
 		clear();
 		GPIOA->ODR &= ~(GPIO_ODR_OD8);
 		GPIOA->ODR &= ~(GPIO_ODR_OD15);		// 00
-		seg7(temperatuur / 1000);
+		seg7(uren / 10);
 		break;
 
 	case 1:
 		clear();
 		GPIOA->ODR |= (GPIO_ODR_OD8);
 		GPIOA->ODR &= ~(GPIO_ODR_OD15);		// 10
-		seg7((temperatuur / 100) % 10);
+		seg7(uren % 10);
 		break;
 
 	case 2:
 		clear();
 		GPIOA->ODR &= ~(GPIO_ODR_OD8);
 		GPIOA->ODR |= (GPIO_ODR_OD15);		// 01
-		seg7((temperatuur % 100) / 10);
+		seg7(minuten / 10);
 		break;
 
 	case 3:
 		clear();
 		GPIOA->ODR |= (GPIO_ODR_OD8);
 		GPIOA->ODR |= (GPIO_ODR_OD15);		// 11
-		seg7((temperatuur % 100) % 10);
+		seg7(minuten % 10);
 		break;
 	}
 	mux++;
 }
 
 int main(void) {
-	// CPU Frequentie = 48 MHz
-	// Systick interrupt elke 1 ms (1kHz)  --> 48000000 Hz / 1000 Hz --> Reload = 48000
-	SysTick_Config(48000);
-
-	// Interrupt aanzetten met een prioriteit van 128
-	NVIC_SetPriority(SysTick_IRQn, 128);
-	NVIC_EnableIRQ(SysTick_IRQn);
-
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
-
-	// Klok aanzetten
-	RCC->AHB2ENR |= RCC_AHB2ENR_ADCEN;
-
-	// Klok selecteren, hier gebruiken we sysclk
-	RCC->CCIPR &= ~RCC_CCIPR_ADCSEL_Msk;
-	RCC->CCIPR |= RCC_CCIPR_ADCSEL_0 | RCC_CCIPR_ADCSEL_1;
-
-	// Deep powerdown modus uitzetten
-	ADC1->CR &= ~ADC_CR_DEEPPWD;
-
-	// ADC voltage regulator aanzetten
-	ADC1->CR |= ADC_CR_ADVREGEN;
-
-	// Delay a few miliseconds, see datasheet for exact timing
-	delay(4);
-
-	// Kalibratie starten
-	ADC1->CR |= ADC_CR_ADCAL;
-	while(ADC1->CR & ADC_CR_ADCAL);
-
-	// ADC aanzetten
-	ADC1->CR |= ADC_CR_ADEN;
-
-	// kanalen instellen
-	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);
-	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
-
-	//NTC
-    GPIOA->MODER &= ~GPIO_MODER_MODE0_Msk;		// port mode register mask van GPIOA pin 0 laag zetten
-
-    GPIOA->MODER |= GPIO_MODER_MODE0_0;		// port mode register van GPIOA pin 0 op 11 zetten -> analog mode
-    GPIOA->MODER |= GPIO_MODER_MODE0_1;
 
     //7seg leds
 	GPIOA->MODER &= ~GPIO_MODER_MODE7_Msk;
@@ -186,15 +162,117 @@ int main(void) {
 	GPIOA->MODER |= GPIO_MODER_MODE6_0;
 	GPIOA->OTYPER &= ~GPIO_OTYPER_OT6;
 
+	// CPU Frequentie = 48 MHz
+	// Systick interrupt elke 1 ms (1kHz)  --> 48000000 Hz / 1000 Hz --> Reload = 48000
+	SysTick_Config(48000);
 
+	// Interrupt aanzetten met een prioriteit van 128
+	NVIC_SetPriority(SysTick_IRQn, 128);
+	NVIC_EnableIRQ(SysTick_IRQn);
+
+    //Knop A
+    GPIOB->MODER &= ~GPIO_MODER_MODE13_Msk;		// port mode register mask van GPIOB pin 13 laag zetten
+
+    GPIOB->MODER &= ~GPIO_MODER_MODE13_0;		// port mode register van GPIOB pin 13 op 00 zetten -> input mode
+    GPIOB->MODER &= ~GPIO_MODER_MODE13_1;
+
+    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD13_Msk;		// port pull-up/pull-down register mask van GPIOB pin 13 laag zetten
+
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPD13_0;		// port pull-up/pull-down register van GPIOB pin 13 op 01 zetten -> pull-up
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD13_1;
+
+
+    //Knop B
+    GPIOB->MODER &= ~GPIO_MODER_MODE14_Msk;		// analoog aan knop A
+
+    GPIOB->MODER &= ~GPIO_MODER_MODE14_0;
+	GPIOB->MODER &= ~GPIO_MODER_MODE14_1;
+
+    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD14_Msk;
+
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPD14_0;
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD14_1;
+
+    //LED 1
+    GPIOB->MODER &= ~GPIO_MODER_MODE9_Msk;		// port mode register mask van GPIOB pin 9 laag zetten
+
+    GPIOB->MODER |= GPIO_MODER_MODE9_0;			// port mode register van GPIOB pin 9 op 01 zetten -> general purpose output mode
+    GPIOB->MODER &= ~GPIO_MODER_MODE9_1;
+
+    GPIOB->OTYPER &= ~GPIO_OTYPER_OT9;			// output type register van GPIOB pin 9 laag zetten -> output push-pull (reset state)
+
+
+    //LED 2
+    GPIOC->MODER &= ~GPIO_MODER_MODE13_Msk;		// analoog aan LED1
+
+    GPIOC->MODER |= GPIO_MODER_MODE13_0;
+    GPIOB->MODER &= ~GPIO_MODER_MODE13_1;
+
+    GPIOC->OTYPER &= ~GPIO_OTYPER_OT13;
 
     while (1) {
-    	// Start de ADC en wacht tot de sequentie klaar is
-    	ADC1->CR |= ADC_CR_ADSTART;
-    	while(!(ADC1->ISR & ADC_ISR_EOS));
+    	while (toggle == 1){
+    		while (stop == 1){
+    			minuten--;
+				GPIOC->ODR |= GPIO_ODR_OD13;
+				delay2(250);
+				stop = 0;
+    		}
+    		if (!(GPIOB->IDR & GPIO_IDR_ID14)) {
+    			toggle++;
+    			GPIOC->ODR &= ~GPIO_ODR_OD13;
+    			stop = 1;
+        	}
+    		else {
+				if (!(GPIOB->IDR & GPIO_IDR_ID13)){
+					delay2(250);
+					uren++;
+					if (uren >= 24){
+						clear();
+						uren = 0;
+					}
+				}
+    		}
+    	}
+    	while (toggle == 2){
+    		while (stop == 1){
+        		GPIOB->ODR |= GPIO_ODR_OD9;
+    			delay2(250);
+				stop = 0;
+    		}
+			if (!(GPIOB->IDR & GPIO_IDR_ID14)) {
+				toggle = 0;
+				GPIOB->ODR &= ~GPIO_ODR_OD9;
+				stop = 1;
+				delay2(250);
+			}
+			else{
+				if (!(GPIOB->IDR & GPIO_IDR_ID13)){
+					delay2(250);
+					minuten++;
+					if (minuten >= 60){
+						clear();
+						minuten = 0;
+						delay2(500);
+					}
+				}
+			}
+		}
 
-    	// Lees de waarde in
-    	temperatuur = ADC1->DR;
-    	delay(250);
+
+
+    	if (minuten >= 60){
+			clear();
+			minuten = 0;
+			uren ++;
+		}
+		if (uren >= 24){
+			clear();
+			uren = 0;
+		}
+
+    	delay(60000);
+    	minuten++;
     }
 }
+
