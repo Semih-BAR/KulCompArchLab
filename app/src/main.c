@@ -8,7 +8,6 @@ int temperatuur;
 float value;
 float V;
 float R;
-float uitkomst;
 
 void delay(unsigned int n){
 	volatile unsigned int delay = n;
@@ -204,12 +203,10 @@ int main(void) {
     	while(!(ADC1->ISR & ADC_ISR_EOS));
 
     	// Lees de waarde in
-    	float value = ADC1->DR;
-    	float V = (value*3.0f)/4096.0f;
-    	float R = (10000.0f*V)/(3.0f-V);
-    	uitkomst = (1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f;
-    	uitkomst *= 10;
-    	temperatuur = uitkomst;
+    	value = ADC1->DR;
+    	V = (value*3.0f)/4096.0f;
+    	R = (10000.0f*V)/(3.0f-V);
+    	temperatuur = 10*((1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f);
 
     	delay(200);
     }
