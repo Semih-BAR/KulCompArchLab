@@ -218,11 +218,19 @@ int main(void) {
 	GPIOA->MODER |= GPIO_MODER_MODE6_0;
 	GPIOA->OTYPER &= ~GPIO_OTYPER_OT6;
 
+    //Knop A
+    GPIOB->MODER &= ~GPIO_MODER_MODE13_Msk;		// port mode register mask van GPIOB pin 13 laag zetten
+
+    GPIOB->MODER &= ~GPIO_MODER_MODE13_0;		// port mode register van GPIOB pin 13 op 00 zetten -> input mode
+    GPIOB->MODER &= ~GPIO_MODER_MODE13_1;
+
+    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD13_Msk;		// port pull-up/pull-down register mask van GPIOB pin 13 laag zetten
+
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPD13_0;		// port pull-up/pull-down register van GPIOB pin 13 op 01 zetten -> pull-up
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD13_1;
+
 	int potwaarde;
     while (1) {
-
-
-
     	// Lees de waarde in
     	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
     	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
