@@ -229,6 +229,14 @@ int main(void) {
 	GPIOB->PUPDR |= GPIO_PUPDR_PUPD13_0;		// port pull-up/pull-down register van GPIOB pin 13 op 01 zetten -> pull-up
 	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD13_1;
 
+    //LED 1
+    GPIOB->MODER &= ~GPIO_MODER_MODE9_Msk;		// port mode register mask van GPIOB pin 9 laag zetten
+
+    GPIOB->MODER |= GPIO_MODER_MODE9_0;			// port mode register van GPIOB pin 9 op 01 zetten -> general purpose output mode
+    GPIOB->MODER &= ~GPIO_MODER_MODE9_1;
+
+    GPIOB->OTYPER &= ~GPIO_OTYPER_OT9;			// output type register van GPIOB pin 9 laag zetten -> output push-pull (reset state)
+
 	int potwaarde;
     while (1) {
     	// Lees de waarde in
@@ -259,9 +267,23 @@ int main(void) {
     	//delay(200);
 
         if (!(GPIOB->IDR & GPIO_IDR_ID13)) {
-        	GPIOB->ODR &= ~GPIO_ODR_OD9;
-        	GPIOC->ODR &= ~GPIO_ODR_OD13;		// beide LEDs uitschakelen als beide knoppen tegelijk worden ingedrukt
+        	TIM16->BDTR &= ~TIM_BDTR_MOE;
+        	GPIOB->ODR |= GPIO_ODR_OD9;
+			int i = 0;
+			while (i < 4000){
+				delay(1);
+				i++;
+
+				ADC1->CR |= ADC_CR_ADSTART;
+				while(!(ADC1->ISR & ADC_ISR_EOC));
+
+		    	temperatuur = ADC1->DR;
+		    	temperatuur = temperatuur/10;
+			}
         }
+        if ((GPIOB->IDR & GPIO_IDR_ID13)) {
+			GPIOB->ODR &= ~GPIO_ODR_OD9;
+		}
 
     	if (temperatuur > potwaarde){
     	    TIM16->BDTR |= TIM_BDTR_MOE;
