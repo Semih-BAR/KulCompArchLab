@@ -229,6 +229,17 @@ int main(void) {
 	GPIOB->PUPDR |= GPIO_PUPDR_PUPD13_0;		// port pull-up/pull-down register van GPIOB pin 13 op 01 zetten -> pull-up
 	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD13_1;
 
+	//Knop B
+	GPIOB->MODER &= ~GPIO_MODER_MODE14_Msk;		// port mode register mask van GPIOB pin 13 laag zetten
+
+	GPIOB->MODER &= ~GPIO_MODER_MODE14_0;		// port mode register van GPIOB pin 13 op 00 zetten -> input mode
+	GPIOB->MODER &= ~GPIO_MODER_MODE14_1;
+
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD14_Msk;		// port pull-up/pull-down register mask van GPIOB pin 13 laag zetten
+
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPD14_0;		// port pull-up/pull-down register van GPIOB pin 13 op 01 zetten -> pull-up
+	GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD14_1;
+
     //LED 1
     GPIOB->MODER &= ~GPIO_MODER_MODE9_Msk;		// port mode register mask van GPIOB pin 9 laag zetten
 
@@ -262,7 +273,7 @@ int main(void) {
 		while(!(ADC1->ISR & ADC_ISR_EOC));
 
     	potwaarde = ADC1->DR;
-    	potwaarde = potwaarde/10;
+    	potwaarde = (4092 - potwaarde)/10;
 
     	//delay(200);
 
@@ -270,7 +281,10 @@ int main(void) {
         	TIM16->BDTR &= ~TIM_BDTR_MOE;
         	GPIOB->ODR |= GPIO_ODR_OD9;
 			int i = 0;
-			while (i < 4000){
+			while (i < 10000){
+				if (!(GPIOB->IDR & GPIO_IDR_ID14)) {
+					break;
+				}
 				delay(1);
 				i++;
 
@@ -278,7 +292,7 @@ int main(void) {
 				while(!(ADC1->ISR & ADC_ISR_EOC));
 
 		    	temperatuur = ADC1->DR;
-		    	temperatuur = temperatuur/10;
+		    	temperatuur = (4092 - temperatuur)/10;
 			}
         }
         if ((GPIOB->IDR & GPIO_IDR_ID13)) {
