@@ -258,7 +258,10 @@ int main(void) {
 
     	//delay(200);
 
-    	if ()
+        if (!(GPIOB->IDR & GPIO_IDR_ID13)) {
+        	GPIOB->ODR &= ~GPIO_ODR_OD9;
+        	GPIOC->ODR &= ~GPIO_ODR_OD13;		// beide LEDs uitschakelen als beide knoppen tegelijk worden ingedrukt
+        }
 
     	if (temperatuur > potwaarde){
     	    TIM16->BDTR |= TIM_BDTR_MOE;
