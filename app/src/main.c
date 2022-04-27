@@ -248,7 +248,7 @@ int main(void) {
 
     GPIOB->OTYPER &= ~GPIO_OTYPER_OT9;			// output type register van GPIOB pin 9 laag zetten -> output push-pull (reset state)
 
-	int potwaarde;
+	int potwaarde = 300;
     while (1) {
     	// Lees de waarde in
     	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
@@ -265,7 +265,7 @@ int main(void) {
     	temperatuur = 10*((1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f);
     	//delay(200);
 
-
+/*
     	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
     	ADC1->SQR1 |= (ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2);
 
@@ -274,10 +274,11 @@ int main(void) {
 
     	potwaarde = ADC1->DR;
     	potwaarde = (4092 - potwaarde)/10;
+*/
 
-    	//delay(200);
-
-        if (!(GPIOB->IDR & GPIO_IDR_ID13)) {
+        if (!(GPIOB->IDR & GPIO_IDR_ID13)) {		// instellen doeltemperatuur
+        	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
+			ADC1->SQR1 |= (ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2);
         	TIM16->BDTR &= ~TIM_BDTR_MOE;
         	GPIOB->ODR |= GPIO_ODR_OD9;
 			while (GPIOB->IDR & GPIO_IDR_ID14){
@@ -286,14 +287,20 @@ int main(void) {
 
 				temperatuur = ADC1->DR;
 				temperatuur = (4092 - temperatuur)/10;
+				potwaarde = temperatuur;
 			}
+
 			GPIOB->ODR &= ~GPIO_ODR_OD9;
 		}
+
     	if (temperatuur > potwaarde){
     	    TIM16->BDTR |= TIM_BDTR_MOE;
     	}
+
     	else{
     		TIM16->BDTR &= ~TIM_BDTR_MOE;
     	}
+
+    	delay(50);
     }
 }
