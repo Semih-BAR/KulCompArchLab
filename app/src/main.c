@@ -280,25 +280,15 @@ int main(void) {
         if (!(GPIOB->IDR & GPIO_IDR_ID13)) {
         	TIM16->BDTR &= ~TIM_BDTR_MOE;
         	GPIOB->ODR |= GPIO_ODR_OD9;
-			int i = 0;
-			while (i < 10000){
-				if (!(GPIOB->IDR & GPIO_IDR_ID14)) {
-					break;
-				}
-				delay(1);
-				i++;
-
+			while (GPIOB->IDR & GPIO_IDR_ID14){
 				ADC1->CR |= ADC_CR_ADSTART;
 				while(!(ADC1->ISR & ADC_ISR_EOC));
 
-		    	temperatuur = ADC1->DR;
-		    	temperatuur = (4092 - temperatuur)/10;
+				temperatuur = ADC1->DR;
+				temperatuur = (4092 - temperatuur)/10;
 			}
-        }
-        if ((GPIOB->IDR & GPIO_IDR_ID13)) {
 			GPIOB->ODR &= ~GPIO_ODR_OD9;
 		}
-
     	if (temperatuur > potwaarde){
     	    TIM16->BDTR |= TIM_BDTR_MOE;
     	}
