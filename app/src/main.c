@@ -248,6 +248,14 @@ int main(void) {
 
     GPIOB->OTYPER &= ~GPIO_OTYPER_OT9;			// output type register van GPIOB pin 9 laag zetten -> output push-pull (reset state)
 
+    //LED 2
+    GPIOC->MODER &= ~GPIO_MODER_MODE13_Msk;		// analoog aan LED1
+
+    GPIOC->MODER |= GPIO_MODER_MODE13_0;
+    GPIOB->MODER &= ~GPIO_MODER_MODE13_1;
+
+    GPIOC->OTYPER &= ~GPIO_OTYPER_OT13;
+
 	int potwaarde = 300;
     while (1) {
     	// Lees de waarde in
