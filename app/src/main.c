@@ -19,6 +19,28 @@ void delay(unsigned int n){
 	}
 }
 
+int readNTC(){
+	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
+	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
+
+	// Start de ADC en wacht tot de sequentie klaar is
+	ADC1->CR |= ADC_CR_ADSTART;
+	while(!(ADC1->ISR & ADC_ISR_EOC));
+
+	return ADC1->DR;
+}
+
+int readPOT(){
+	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
+	ADC1->SQR1 |= (ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2);
+
+	// Start de ADC en wacht tot de sequentie klaar is
+	ADC1->CR |= ADC_CR_ADSTART;
+	while(!(ADC1->ISR & ADC_ISR_EOC));
+
+	return ADC1->DR;
+}
+
 void clear(){
 	GPIOA->ODR &= ~(GPIO_ODR_OD6);
 	GPIOA->ODR &= ~(GPIO_ODR_OD7 | GPIO_ODR_OD5);
@@ -105,6 +127,8 @@ void SysTick_Handler(void){
 }
 
 int main(void) {
+    RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
+
 	// CPU Frequentie = 48 MHz
 	// Systick interrupt elke 1 ms (1kHz)  --> 48000000 Hz / 1000 Hz --> Reload = 48000
 	SysTick_Config(48000);
@@ -258,48 +282,34 @@ int main(void) {
 
 	int potwaarde = 300;
     while (1) {
-    	// Lees de waarde in
-    	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
-    	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
-
-    	// Start de ADC en wacht tot de sequentie klaar is
-    	ADC1->CR |= ADC_CR_ADSTART;
-    	while(!(ADC1->ISR & ADC_ISR_EOC));
-
-    	value = ADC1->DR;
-    	//temperatuur = ADC1->DR;
-    	V = (value*3.0f)/4096.0f;
-    	R = (10000.0f*V)/(3.0f-V);
-    	temperatuur = 10*((1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f);
-    	//delay(200);
-
-/*
-    	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
-    	ADC1->SQR1 |= (ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2);
-
-    	ADC1->CR |= ADC_CR_ADSTART;
-		while(!(ADC1->ISR & ADC_ISR_EOC));
-
-    	potwaarde = ADC1->DR;
-    	potwaarde = (4092 - potwaarde)/10;
-*/
-
         if (!(GPIOB->IDR & GPIO_IDR_ID13)) {		// instellen doeltemperatuur
-        	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
-			ADC1->SQR1 |= (ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2);
         	TIM16->BDTR &= ~TIM_BDTR_MOE;
         	GPIOB->ODR |= GPIO_ODR_OD9;
 			while (GPIOB->IDR & GPIO_IDR_ID14){
-				ADC1->CR |= ADC_CR_ADSTART;
-				while(!(ADC1->ISR & ADC_ISR_EOC));
-
-				temperatuur = ADC1->DR;
+				temperatuur = readPOT();
 				temperatuur = (4092 - temperatuur)/10;
 				potwaarde = temperatuur;
 			}
-
+			GPIOC->ODR |= GPIO_ODR_OD13;
+			delay(1000);
 			GPIOB->ODR &= ~GPIO_ODR_OD9;
+			GPIOC->ODR &= ~GPIO_ODR_OD13;
 		}
+
+        if (!(GPIOB->IDR & GPIO_IDR_ID14)){
+        	TIM16->BDTR &= ~TIM_BDTR_MOE;
+        	GPIOB->ODR |= GPIO_ODR_OD9;
+        	GPIOC->ODR |= GPIO_ODR_OD13;
+        	temperatuur = potwaarde;
+        	delay(1500);
+        	GPIOB->ODR &= ~GPIO_ODR_OD9;
+			GPIOC->ODR &= ~GPIO_ODR_OD13;
+        }
+
+    	value = readNTC();
+    	V = (value*3.0f)/4096.0f;
+    	R = (10000.0f*V)/(3.0f-V);
+    	temperatuur = 10*((1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f);
 
     	if (temperatuur > potwaarde){
     	    TIM16->BDTR |= TIM_BDTR_MOE;
