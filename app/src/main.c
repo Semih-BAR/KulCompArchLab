@@ -4,7 +4,7 @@
 
 int mux = 0;
 int tick = 0;
-int temperatuur = 0;
+float temperatuur = 0.0f;
 float value;
 float V;
 float R;
@@ -145,16 +145,17 @@ int main(void) {
 
     GPIOA->MODER |= GPIO_MODER_MODE0_0 | GPIO_MODER_MODE0_1;		// port mode register van GPIOA pin 0 op 11 zetten -> analog mode
 
-    while (1) {
-    	printf("hello\n\r");
 
+
+    while (1) {
     	value = readNTC();
     	V = (value*3.0f)/4096.0f;
     	R = (10000.0f*V)/(3.0f-V);
-    	temperatuur = 10*((1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f);
+    	temperatuur = ((1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f);
 
-    	printf(temperatuur);
+    	printf("%2.2f",temperatuur);
+    	printf("°C\n\r");
 
-    	delay(50);
+    	delay(1000);
     }
 }
