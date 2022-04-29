@@ -8,6 +8,7 @@ int temperatuur;
 float value;
 float V;
 float R;
+int verander = 0;
 
 void delay(unsigned int n){
 	volatile unsigned int delay = n;
@@ -280,7 +281,10 @@ int main(void) {
 
     GPIOC->OTYPER &= ~GPIO_OTYPER_OT13;
 
+    int i = 0;
+
 	int potwaarde = 300;
+
     while (1) {
         if (!(GPIOB->IDR & GPIO_IDR_ID13)) {		// instellen doeltemperatuur
         	TIM16->BDTR &= ~TIM_BDTR_MOE;
@@ -311,14 +315,28 @@ int main(void) {
     	R = (10000.0f*V)/(3.0f-V);
     	temperatuur = 10*((1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f);
 
-    	if (temperatuur > potwaarde){
-    	    TIM16->BDTR |= TIM_BDTR_MOE;
+    	while ((GPIOB->IDR & GPIO_IDR_ID13) && (GPIOB->IDR & GPIO_IDR_ID14)){
+    		if (temperatuur > potwaarde){
+    			i++;
+    			TIM16->BDTR |= TIM_BDTR_MOE;
+        		if (i < 500){
+            	    TIM16->ARR = 24000;
+            	    TIM16->CCR1 = 12000;
+            	    delay(1);
+        		}
+        		else if (i < 1000){
+        			TIM16->ARR = 48000;
+    				TIM16->CCR1 = 24000;
+    				delay(1);
+        		}
+        		else {
+        			i = 0;
+        		}
+    		}
+    		break;
     	}
 
-    	else{
-    		TIM16->BDTR &= ~TIM_BDTR_MOE;
-    	}
-
-    	delay(50);
+    	//delay(50);
+    	TIM16->BDTR &= ~TIM_BDTR_MOE;
     }
 }
