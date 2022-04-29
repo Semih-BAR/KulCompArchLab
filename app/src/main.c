@@ -41,59 +41,9 @@ int readPOT(){
 	return ADC1->DR;
 }
 
-void clear(){
-	GPIOA->ODR &= ~(GPIO_ODR_OD6);
-	GPIOA->ODR &= ~(GPIO_ODR_OD7 | GPIO_ODR_OD5);
-	GPIOB->ODR &= ~(GPIO_ODR_OD0 | GPIO_ODR_OD12 | GPIO_ODR_OD15 | GPIO_ODR_OD1 | GPIO_ODR_OD2);
-}
-
-void seg7(int n){
-	switch (n){
-		case 0:
-			GPIOA->ODR |= (GPIO_ODR_OD7 | GPIO_ODR_OD5);
-			GPIOB->ODR |= (GPIO_ODR_OD0 | GPIO_ODR_OD12 | GPIO_ODR_OD15 | GPIO_ODR_OD1);
-			break;
-		case 1:
-			GPIOA->ODR |= (GPIO_ODR_OD7 | GPIO_ODR_OD5);
-			break;
-		case 2:
-			GPIOA->ODR |= (GPIO_ODR_OD7);
-			GPIOB->ODR |= (GPIO_ODR_OD0 | GPIO_ODR_OD2 | GPIO_ODR_OD15 | GPIO_ODR_OD12);
-			break;
-		case 3:
-			GPIOA->ODR |= (GPIO_ODR_OD7 | GPIO_ODR_OD5);
-			GPIOB->ODR |= (GPIO_ODR_OD0 | GPIO_ODR_OD2 | GPIO_ODR_OD12);
-			break;
-		case 4:
-			GPIOA->ODR |= (GPIO_ODR_OD7 | GPIO_ODR_OD5);
-			GPIOB->ODR |= (GPIO_ODR_OD1 | GPIO_ODR_OD2);
-			break;
-		case 5:
-			GPIOA->ODR |= (GPIO_ODR_OD5);
-			GPIOB->ODR |= (GPIO_ODR_OD0 | GPIO_ODR_OD1 | GPIO_ODR_OD2 | GPIO_ODR_OD12);
-			break;
-		case 6:
-			GPIOA->ODR |= (GPIO_ODR_OD5);
-			GPIOB->ODR |= (GPIO_ODR_OD0 | GPIO_ODR_OD1 | GPIO_ODR_OD15 | GPIO_ODR_OD12 | GPIO_ODR_OD2);
-			break;
-		case 7:
-			GPIOA->ODR |= (GPIO_ODR_OD7 | GPIO_ODR_OD5);
-			GPIOB->ODR |= (GPIO_ODR_OD0);
-			break;
-		case 8:
-			GPIOA->ODR |= (GPIO_ODR_OD7 | GPIO_ODR_OD5);
-			GPIOB->ODR |= (GPIO_ODR_OD0 | GPIO_ODR_OD12 | GPIO_ODR_OD15 | GPIO_ODR_OD1 | GPIO_ODR_OD2);
-			break;
-		case 9:
-			GPIOA->ODR |= (GPIO_ODR_OD7 | GPIO_ODR_OD5);
-			GPIOB->ODR |= (GPIO_ODR_OD0 | GPIO_ODR_OD12 | GPIO_ODR_OD1 | GPIO_ODR_OD2);
-			break;
-	}
-}
-
 void SysTick_Handler(void){
 	tick++;
-	switch(mux & 0x3){
+	/*switch(mux & 0x3){
 	case 0:
 		clear();
 		GPIOA->ODR &= ~(GPIO_ODR_OD8);
@@ -122,12 +72,33 @@ void SysTick_Handler(void){
 		GPIOA->ODR |= (GPIO_ODR_OD15);		// 11
 		seg7((temperatuur % 100) % 10);
 		break;
-	}
+	}*/
 	mux++;
 }
 
+int __io_putchar(int ch){
+    while(!(USART1->ISR & USART_ISR_TXE));
+    USART1->TDR = ch;
+}
+
 int main(void) {
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
+	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
     RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
+
+    GPIOA->MODER &= ~GPIO_MODER_MODE9_Msk;
+    GPIOA->MODER |=  GPIO_MODER_MODE9_1;
+    GPIOA->OTYPER &= ~GPIO_OTYPER_OT9;
+    GPIOA->AFR[1] = (GPIOA->AFR[1] & (~GPIO_AFRH_AFSEL9_Msk)) | (0x7 << GPIO_AFRH_AFSEL9_Pos);
+
+    GPIOA->MODER &= ~GPIO_MODER_MODE10_Msk;
+    GPIOA->AFR[1] = (GPIOA->AFR[1] & (~GPIO_AFRH_AFSEL10_Msk)) | (0x7 << GPIO_AFRH_AFSEL10_Pos);
+
+    USART1->CR1 = 0;
+    USART1->CR2 = 0;
+    USART1->CR3 = 0;
+    USART1->BRR = 417;
+    USART1->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
 
 	// CPU Frequentie = 48 MHz
 	// Systick interrupt elke 1 ms (1kHz)  --> 48000000 Hz / 1000 Hz --> Reload = 48000
@@ -280,45 +251,7 @@ int main(void) {
 
     GPIOC->OTYPER &= ~GPIO_OTYPER_OT13;
 
-	int potwaarde = 300;
     while (1) {
-        if (!(GPIOB->IDR & GPIO_IDR_ID13)) {		// instellen doeltemperatuur
-        	TIM16->BDTR &= ~TIM_BDTR_MOE;
-        	GPIOB->ODR |= GPIO_ODR_OD9;
-			while (GPIOB->IDR & GPIO_IDR_ID14){
-				temperatuur = readPOT();
-				temperatuur = (4092 - temperatuur)/10;
-				potwaarde = temperatuur;
-			}
-			GPIOC->ODR |= GPIO_ODR_OD13;
-			delay(1000);
-			GPIOB->ODR &= ~GPIO_ODR_OD9;
-			GPIOC->ODR &= ~GPIO_ODR_OD13;
-		}
-
-        if (!(GPIOB->IDR & GPIO_IDR_ID14)){
-        	TIM16->BDTR &= ~TIM_BDTR_MOE;
-        	GPIOB->ODR |= GPIO_ODR_OD9;
-        	GPIOC->ODR |= GPIO_ODR_OD13;
-        	temperatuur = potwaarde;
-        	delay(1500);
-        	GPIOB->ODR &= ~GPIO_ODR_OD9;
-			GPIOC->ODR &= ~GPIO_ODR_OD13;
-        }
-
-    	value = readNTC();
-    	V = (value*3.0f)/4096.0f;
-    	R = (10000.0f*V)/(3.0f-V);
-    	temperatuur = 10*((1.0f/((logf(R/10000.0f)/3936.0f)+(1.0f/298.15f)))-273.15f);
-
-    	if (temperatuur > potwaarde){
-    	    TIM16->BDTR |= TIM_BDTR_MOE;
-    	}
-
-    	else{
-    		TIM16->BDTR &= ~TIM_BDTR_MOE;
-    	}
-
-    	delay(50);
+    	printf(readNTC);
     }
 }
