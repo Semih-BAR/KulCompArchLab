@@ -10,16 +10,6 @@ float V;
 float R;
 int verander = 0;
 
-void delay(unsigned int n){
-	volatile unsigned int delay = n;
-	while (delay != 0){
-		if (tick){
-			delay--;
-			tick = 0;
-		}
-	}
-}
-
 int readNTC(){
 	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
 	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
@@ -46,6 +36,16 @@ void clear(){
 	GPIOA->ODR &= ~(GPIO_ODR_OD6);
 	GPIOA->ODR &= ~(GPIO_ODR_OD7 | GPIO_ODR_OD5);
 	GPIOB->ODR &= ~(GPIO_ODR_OD0 | GPIO_ODR_OD12 | GPIO_ODR_OD15 | GPIO_ODR_OD1 | GPIO_ODR_OD2);
+}
+
+void delay(unsigned int n){
+	volatile unsigned int delay = n;
+	while (delay != 0){
+		if (tick){
+			delay--;
+			tick = 0;
+		}
+	}
 }
 
 void seg7(int n){
@@ -111,7 +111,7 @@ void SysTick_Handler(void){
 
 	case 2:
 		clear();
-		GPIOA->ODR |= (GPIO_ODR_OD6);
+		GPIOA->ODR |= (GPIO_ODR_OD6);		// .
 		GPIOA->ODR &= ~(GPIO_ODR_OD8);
 		GPIOA->ODR |= (GPIO_ODR_OD15);		// 01
 		seg7((temperatuur % 100) / 10);
@@ -128,7 +128,10 @@ void SysTick_Handler(void){
 }
 
 int main(void) {
-    RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
+
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;		// enable IO port A clock -- clock activeren voor GPIO A
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;		// enable IO port B clock -- clock activeren voor GPIO B
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
 
 	// CPU Frequentie = 48 MHz
 	// Systick interrupt elke 1 ms (1kHz)  --> 48000000 Hz / 1000 Hz --> Reload = 48000
@@ -137,10 +140,6 @@ int main(void) {
 	// Interrupt aanzetten met een prioriteit van 128
 	NVIC_SetPriority(SysTick_IRQn, 128);
 	NVIC_EnableIRQ(SysTick_IRQn);
-
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
 
 	// Klok aanzetten
 	RCC->AHB2ENR |= RCC_AHB2ENR_ADCEN;
@@ -166,16 +165,8 @@ int main(void) {
 	ADC1->CR |= ADC_CR_ADEN;
 
 	// kanalen instellen
-	ADC1->SMPR1 |= (ADC_SMPR1_SMP5_0 | ADC_SMPR1_SMP5_1 | ADC_SMPR1_SMP5_2);
-	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);
-	//ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
-
-
-
-	//NTC
-    GPIOA->MODER &= ~GPIO_MODER_MODE0_Msk;		// port mode register mask van GPIOA pin 0 laag zetten
-
-    GPIOA->MODER |= GPIO_MODER_MODE0_0 | GPIO_MODER_MODE0_1;		// port mode register van GPIOA pin 0 op 11 zetten -> analog mode
+	ADC1->SMPR1 |= (ADC_SMPR1_SMP5_0 | ADC_SMPR1_SMP5_1 | ADC_SMPR1_SMP5_2);		// NTC
+	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);		// POT
 
     // TIMER
     RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
@@ -196,6 +187,10 @@ int main(void) {
     TIM16->CCER &= ~TIM_CCER_CC1P;
     TIM16->BDTR |= TIM_BDTR_MOE;
     TIM16->CR1 |= TIM_CR1_CEN;
+
+	//NTC
+    GPIOA->MODER &= ~GPIO_MODER_MODE0_Msk;							// port mode register mask van GPIOA pin 0 laag zetten
+    GPIOA->MODER |= GPIO_MODER_MODE0_0 | GPIO_MODER_MODE0_1;		// port mode register van GPIOA pin 0 op 11 zetten -> analog mode
 
     //7seg leds
 	GPIOA->MODER &= ~GPIO_MODER_MODE7_Msk;
@@ -230,7 +225,7 @@ int main(void) {
 	GPIOA->MODER |= GPIO_MODER_MODE6_0;
 	GPIOA->OTYPER &= ~GPIO_OTYPER_OT6;
 
-	//mux
+	//MUX
 	GPIOA->MODER &= ~GPIO_MODER_MODE8_Msk;
 	GPIOA->MODER |= GPIO_MODER_MODE8_0;
 	GPIOA->OTYPER &= ~GPIO_OTYPER_OT8;
@@ -282,14 +277,13 @@ int main(void) {
     GPIOC->OTYPER &= ~GPIO_OTYPER_OT13;
 
     int i = 0;
-
-	int potwaarde = 300;
+	int potwaarde = 300;		// doeltemperatuur in het begin is 30.0 °C
 
     while (1) {
-        if (!(GPIOB->IDR & GPIO_IDR_ID13)) {		// instellen doeltemperatuur
-        	TIM16->BDTR &= ~TIM_BDTR_MOE;
-        	GPIOB->ODR |= GPIO_ODR_OD9;
-			while (GPIOB->IDR & GPIO_IDR_ID14){
+        if (!(GPIOB->IDR & GPIO_IDR_ID13)) {			// instellen doeltemperatuur bij druk op knop B
+			while (GPIOB->IDR & GPIO_IDR_ID14){			// zolang er niet gedrukt wordt op knop A, kan men doeltemperatuur instellen met potmeter
+	        	TIM16->BDTR &= ~TIM_BDTR_MOE;			// buzzer uit
+	        	GPIOB->ODR |= GPIO_ODR_OD9;				// LED B aan
 				temperatuur = readPOT();
 				temperatuur = (4092 - temperatuur)/10;
 				potwaarde = temperatuur;
@@ -300,10 +294,10 @@ int main(void) {
 			GPIOC->ODR &= ~GPIO_ODR_OD13;
 		}
 
-        if (!(GPIOB->IDR & GPIO_IDR_ID14)){
-        	TIM16->BDTR &= ~TIM_BDTR_MOE;
+        if (!(GPIOB->IDR & GPIO_IDR_ID14)){				// bekijken doeltemperatuur bij klik op knop A
+        	TIM16->BDTR &= ~TIM_BDTR_MOE;				// buzzer uit
         	GPIOB->ODR |= GPIO_ODR_OD9;
-        	GPIOC->ODR |= GPIO_ODR_OD13;
+        	GPIOC->ODR |= GPIO_ODR_OD13;				// LED's aan
         	temperatuur = potwaarde;
         	delay(1500);
         	GPIOB->ODR &= ~GPIO_ODR_OD9;
@@ -336,7 +330,6 @@ int main(void) {
     		break;
     	}
 
-    	//delay(50);
-    	TIM16->BDTR &= ~TIM_BDTR_MOE;
+    	TIM16->BDTR &= ~TIM_BDTR_MOE;		// buzzer uit
     }
 }
