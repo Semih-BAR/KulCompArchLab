@@ -168,25 +168,28 @@ int main(void) {
 	ADC1->SMPR1 |= (ADC_SMPR1_SMP5_0 | ADC_SMPR1_SMP5_1 | ADC_SMPR1_SMP5_2);		// NTC
 	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);		// POT
 
-    // TIMER
-    RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
+    // --- TIMER ---
+	// bit 17 'timer clock enable' van 'reset and clock control' hoog zetten om te activeren
     RCC->APB2ENR |= RCC_APB2ENR_TIM16EN;
 
-    GPIOB->MODER &= ~GPIO_MODER_MODE8_Msk;
-    GPIOB->MODER |=  GPIO_MODER_MODE8_1;
-    GPIOB->OTYPER &= ~GPIO_OTYPER_OT8;
+
+    GPIOB->MODER &= ~GPIO_MODER_MODE8_Msk;		// port mode register mask van GPIOB pin 8 laag zetten
+    GPIOB->MODER &= ~GPIO_MODER_MODE8_0;
+    GPIOB->MODER |=  GPIO_MODER_MODE8_1;		// port mode register van GPIOB pin 8 op 01 zetten -> output mode
+    GPIOB->OTYPER &= ~GPIO_OTYPER_OT8;			// output type register van GPIOB pin 8 laag zetten -> output push-pull (reset state)
+    // GPIO alternate function high register configureren
     GPIOB->AFR[1] = (GPIOB->AFR[1] & (~GPIO_AFRH_AFSEL8_Msk)) | (0xE << GPIO_AFRH_AFSEL8_Pos);
 
-    TIM16->PSC = 0;
-    TIM16->ARR = 24000;
-    TIM16->CCR1 = 12000;
+    TIM16->PSC = 0;			// timer prescaler op 0 zetten
+    TIM16->ARR = 24000;		// auto-reload register, register om vanaf dat getal te beginnen met tellen
+    TIM16->CCR1 = 12000;	// waarde om de uitgangsgolfvorm te regelen
 
-    TIM16->CCMR1 &= ~TIM_CCMR1_CC1S;
+    TIM16->CCMR1 &= ~TIM_CCMR1_CC1S;		// forceert elk uitgangsvergelijkingssignaal naar een actief of inactief niveau
     TIM16->CCMR1 |= TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1FE;
-    TIM16->CCER |= TIM_CCER_CC1E;
-    TIM16->CCER &= ~TIM_CCER_CC1P;
-    TIM16->BDTR |= TIM_BDTR_MOE;
-    TIM16->CR1 |= TIM_CR1_CEN;
+    TIM16->CCER |= TIM_CCER_CC1E;			// activeert de capture/compare register
+    TIM16->CCER &= ~TIM_CCER_CC1P;			// activeert de capture/compare register
+    TIM16->BDTR |= TIM_BDTR_MOE;			// activeert de break and dead-time register
+    TIM16->CR1 |= TIM_CR1_CEN;				// activeert de control register
 
 	//NTC
     GPIOA->MODER &= ~GPIO_MODER_MODE0_Msk;							// port mode register mask van GPIOA pin 0 laag zetten
