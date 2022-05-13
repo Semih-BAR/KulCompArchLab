@@ -43,36 +43,6 @@ int readPOT(){
 
 void SysTick_Handler(void){
 	tick++;
-	/*switch(mux & 0x3){
-	case 0:
-		clear();
-		GPIOA->ODR &= ~(GPIO_ODR_OD8);
-		GPIOA->ODR &= ~(GPIO_ODR_OD15);		// 00
-		seg7(temperatuur / 1000);
-		break;
-
-	case 1:
-		clear();
-		GPIOA->ODR |= (GPIO_ODR_OD8);
-		GPIOA->ODR &= ~(GPIO_ODR_OD15);		// 10
-		seg7((temperatuur / 100) % 10);
-		break;
-
-	case 2:
-		clear();
-		GPIOA->ODR |= (GPIO_ODR_OD6);
-		GPIOA->ODR &= ~(GPIO_ODR_OD8);
-		GPIOA->ODR |= (GPIO_ODR_OD15);		// 01
-		seg7((temperatuur % 100) / 10);
-		break;
-
-	case 3:
-		clear();
-		GPIOA->ODR |= (GPIO_ODR_OD8);
-		GPIOA->ODR |= (GPIO_ODR_OD15);		// 11
-		seg7((temperatuur % 100) % 10);
-		break;
-	}*/
 	mux++;
 }
 
