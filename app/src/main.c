@@ -26,6 +26,19 @@ int __io_putchar(int ch){
 }
 
 int main(void) {
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
+	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
+
+    GPIOA->MODER &= ~GPIO_MODER_MODE9_Msk;
+    GPIOA->MODER |=  GPIO_MODER_MODE9_1;
+    GPIOA->OTYPER &= ~GPIO_OTYPER_OT9;
+    GPIOA->AFR[1] = (GPIOA->AFR[1] & (~GPIO_AFRH_AFSEL9_Msk)) | (0x7 << GPIO_AFRH_AFSEL9_Pos);
+
+    GPIOA->MODER &= ~GPIO_MODER_MODE10_Msk;
+    GPIOA->AFR[1] = (GPIOA->AFR[1] & (~GPIO_AFRH_AFSEL10_Msk)) | (0x7 << GPIO_AFRH_AFSEL10_Pos);
+
     USART1->CR1 = 0;
     USART1->CR2 = 0;
     USART1->CR3 = 0;
@@ -40,10 +53,8 @@ int main(void) {
 	NVIC_SetPriority(SysTick_IRQn, 128);
 	NVIC_EnableIRQ(SysTick_IRQn);
 
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
 
+/*
 	// Klok aanzetten
 	RCC->AHB2ENR |= RCC_AHB2ENR_ADCEN;
 
@@ -69,30 +80,14 @@ int main(void) {
 
 	// kanalen instellen
 	ADC1->SMPR1 |= (ADC_SMPR1_SMP5_0 | ADC_SMPR1_SMP5_1 | ADC_SMPR1_SMP5_2);
-	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);
+	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);*/
 
 
-    // I2C
-    RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
-    RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN;
-
-    GPIOB->MODER &= ~GPIO_MODER_MODE6_Msk;
-    GPIOB->MODER |=  GPIO_MODER_MODE6_1;
-    GPIOB->OTYPER |= GPIO_OTYPER_OT6;
-    GPIOB->AFR[0] = (GPIOB->AFR[0] & (~GPIO_AFRL_AFSEL6_Msk)) | (0x4 << GPIO_AFRL_AFSEL6_Pos);
-
-    GPIOB->MODER &= ~GPIO_MODER_MODE7_Msk;
-    GPIOB->MODER |=  GPIO_MODER_MODE7_1;
-    GPIOB->OTYPER |= GPIO_OTYPER_OT7;
-    GPIOB->AFR[0] = (GPIOB->AFR[0] & (~GPIO_AFRL_AFSEL7_Msk)) | (0x4 << GPIO_AFRL_AFSEL7_Pos);
-
-    I2C1->TIMINGR = 0x20303E5D;
-    I2C1->CR2 |= (I2C_CR2_AUTOEND | I2C_CR2_NACK);
-    I2C1->CR1 |= I2C_CR1_PE;
 
     while (1) {
 
     	printf("%2.2f",5.5);
+    	printf("\n\r");
 
     	delay(1000);
     }
