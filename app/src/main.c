@@ -20,10 +20,10 @@ void SysTick_Handler(void){
 	mux++;
 }
 
-/*int __io_putchar(int ch){
+int __io_putchar(int ch){
     while(!(USART1->ISR & USART_ISR_TXE));
     USART1->TDR = ch;
-}*/
+}
 
 int main(void) {
     USART1->CR1 = 0;
@@ -92,7 +92,7 @@ int main(void) {
 
     while (1) {
 
-    	printf("a");
+    	printf("%2.2f",5.5);
 
     	delay(1000);
     }
