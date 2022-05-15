@@ -9,16 +9,6 @@ float value;
 float V;
 float R;
 
-void delay(unsigned int n){
-	volatile unsigned int delay = n;
-	while (delay != 0){
-		if (tick){
-			delay--;
-			tick = 0;
-		}
-	}
-}
-
 int readNTC(){
 	ADC1->SQR1 &= ~(ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_1 | ADC_SQR1_SQ1_2 | ADC_SQR1_SQ1_3);
 	ADC1->SQR1 |= (ADC_SQR1_SQ1_0 | ADC_SQR1_SQ1_2);
@@ -41,6 +31,16 @@ int readPOT(){
 	return ADC1->DR;
 }
 
+void delay(unsigned int n){
+	volatile unsigned int delay = n;
+	while (delay != 0){
+		if (tick){
+			delay--;
+			tick = 0;
+		}
+	}
+}
+
 void SysTick_Handler(void){
 	tick++;
 	mux++;
@@ -52,9 +52,11 @@ int __io_putchar(int ch){
 }
 
 int main(void) {
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;		// enable IO port A clock -- clock activeren voor GPIO A
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;		// enable IO port B clock -- clock activeren voor GPIO B
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
+
 	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
-    RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
 
     GPIOA->MODER &= ~GPIO_MODER_MODE9_Msk;
     GPIOA->MODER |=  GPIO_MODER_MODE9_1;
@@ -77,10 +79,6 @@ int main(void) {
 	// Interrupt aanzetten met een prioriteit van 128
 	NVIC_SetPriority(SysTick_IRQn, 128);
 	NVIC_EnableIRQ(SysTick_IRQn);
-
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;		// enable IO port C clock -- clock activeren voor GPIO C
 
 	// Klok aanzetten
 	RCC->AHB2ENR |= RCC_AHB2ENR_ADCEN;
@@ -111,7 +109,6 @@ int main(void) {
 
 	//NTC
     GPIOA->MODER &= ~GPIO_MODER_MODE0_Msk;							// port mode register mask van GPIOA pin 0 laag zetten
-
     GPIOA->MODER |= GPIO_MODER_MODE0_0 | GPIO_MODER_MODE0_1;		// port mode register van GPIOA pin 0 op 11 zetten -> analog mode
 
 
