@@ -4,6 +4,7 @@
 
 int mux = 0;
 int tick = 0;
+double hoek = 0;
 
 void delay(unsigned int n){
 	volatile unsigned int delay = n;
@@ -25,8 +26,53 @@ int __io_putchar(int ch){
     USART1->TDR = ch;
 }
 
-void write_accel(int data , int register){
-	I2C->CR2 |=
+void write_accel(int data, int reg){
+	    I2C1->CR2 &= ~(1<<10);//enable write mode
+		I2C1->CR2 |= I2C_CR2_NACK_Msk;
+	    I2C1->CR2 |=  (1 << 13)|(2 << 16)|(0x53 << 1); //grote te verzende paket, conencted device,
+	    while((I2C1->ISR & (1<<4)) == 0 && (I2C1->ISR & (1<<1)) == 0);
+	     //NACKF = 0, TXIS = 0
+	    if((I2C1->ISR & (1<<4)) != 0){ //NACKF = 1
+	        return;
+	    }
+
+	    I2C1->TXDR = reg;//register doorsturen
+
+	    while(I2C1->ISR & (1<<4) == 0 && I2C1->ISR & (1<<1) == 0){};
+	         //NACKF = 0, TXIS = 0
+	    if((I2C1->ISR & (1<<4)) != 0){ //NACKF = 1
+	        return;
+	    }
+	    I2C1->TXDR = data;
+		while((I2C1->ISR & I2C_ISR_STOPF) == 0);
+}
+
+int read_accel(int reg){
+	while((I2C1->ISR & I2C_ISR_BUSY));
+	I2C1->CR2 &= ~(1<<10);//enable write mode
+	I2C1->CR2 &= ~I2C_CR2_AUTOEND_Msk;
+	I2C1->CR2 &= ~I2C_CR2_NBYTES_Msk;
+	I2C1->CR2 |= I2C_CR2_NACK_Msk;
+	I2C1->CR2 |=  (1 << 13)|(1 << 16)|(0x53 << 1); //grote te verzende paket, conencted device,
+	while(((I2C1->ISR & (1<<4)) == 0) && ((I2C1->ISR & (1<<1)) == 0)){};
+	 //NACKF = 0, TXIS = 0
+	if((I2C1->ISR & (1<<4)) != 0){ //NACKF = 1
+		return;
+	}
+
+	I2C1->TXDR = reg;//register doorsturen
+	while((I2C1->ISR & (1<<6)) == 0);
+
+
+	I2C1->CR2 |= I2C_CR2_AUTOEND_Msk;
+	I2C1->CR2 |= (1<<10);//enable read mode
+	//read
+	I2C1->CR2 |=  (1 << 16)|(0x53 << 1); //grote te verzende paket, conencted device,
+	I2C1->CR2 |= (1<<13);
+	while(!(I2C1->ISR & I2C_ISR_RXNE));
+
+	return I2C1->RXDR;
+
 }
 
 int main(void) {
@@ -57,37 +103,6 @@ int main(void) {
 	NVIC_SetPriority(SysTick_IRQn, 128);
 	NVIC_EnableIRQ(SysTick_IRQn);
 
-
-/*
-	// Klok aanzetten
-	RCC->AHB2ENR |= RCC_AHB2ENR_ADCEN;
-
-	// Klok selecteren, hier gebruiken we sysclk
-	RCC->CCIPR &= ~RCC_CCIPR_ADCSEL_Msk;
-	RCC->CCIPR |= RCC_CCIPR_ADCSEL_0 | RCC_CCIPR_ADCSEL_1;
-
-	// Deep powerdown modus uitzetten
-	ADC1->CR &= ~ADC_CR_DEEPPWD;
-
-	// ADC voltage regulator aanzetten
-	ADC1->CR |= ADC_CR_ADVREGEN;
-
-	// Delay a few miliseconds, see datasheet for exact timing
-	delay(4);
-
-	// Kalibratie starten
-	ADC1->CR |= ADC_CR_ADCAL;
-	while(ADC1->CR & ADC_CR_ADCAL);
-
-	// ADC aanzetten
-	ADC1->CR |= ADC_CR_ADEN;
-
-	// kanalen instellen
-	ADC1->SMPR1 |= (ADC_SMPR1_SMP5_0 | ADC_SMPR1_SMP5_1 | ADC_SMPR1_SMP5_2);
-	ADC1->SMPR1 |= (ADC_SMPR1_SMP6_0 | ADC_SMPR1_SMP6_1 | ADC_SMPR1_SMP6_2);*/
-
-
-
 	// I2C
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
 	RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN;
@@ -106,9 +121,20 @@ int main(void) {
 	I2C1->CR2 |= (I2C_CR2_AUTOEND | I2C_CR2_NACK);
 	I2C1->CR1 |= I2C_CR1_PE;
 
-    while (1) {
+	volatile int16_t array[3];
+	write_accel(1<<3,0x2D);
+	array[0] =  read_accel(0x2D);
 
-    	printf("%2.2f",5.5);
+    while (1) {
+    	for (int i = 0; i<3; i++){
+			array[i] = read_accel(0x32+i*2)<<8+read_accel(0x32+i*2+1);
+		}
+
+    	int xy = sqrt(array[0]^2+array[1]^2);
+		int xyz = sqrt(xy^2+array[2]^2);
+		hoek = (acos(array[2]/(sqrt(array[0]*array[0]+array[1]*array[1]+array[2]*array[2]))))*(180/3.14);
+
+    	printf("%2.2f",hoek);
     	printf("\n\r");
 
     	delay(1000);
